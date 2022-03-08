@@ -62,6 +62,9 @@ class BIMoSStyle(object):
             \usepackage{amsmath}
             \usepackage{bbm}
         ''')
+        # 'font.family': 'sans-serif',
+        # 'mathtext.fontset': 'stixsans',
+        # 'text.latex.preamble': [r'\usepackage{FiraSans}', r'\usepackage{sfmath}', r'\usepackage{amsmath}', r'\usepackage{bbm}']}
         mpl.rc('figure', facecolor=normal_text_bg, edgecolor=normal_text_bg)
         mpl.rc('axes', facecolor=block_body_bg, edgecolor=normal_text_fg, labelcolor=normal_text_fg)
         mpl.rc('xtick', color=normal_text_fg)
