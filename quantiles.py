@@ -19,6 +19,7 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
     values : ndarray (shape: (m,n))
         Realizations of the the process (plotted on the y-axis).
         Each row of values contains a different path of the stochastic process.
+        Nan's are considered to be missing values and are ignored.
     ax : matplotlib.axes.Axes, optional
         The axis object used for plotting. (default: matplotlib.pyplot.gca())
     num_quantiles : int (>= 0), optional
@@ -35,15 +36,7 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
         ax = plt.gca()
 
     ps = np.linspace(0,1,2*(num_quantiles+1)+1)[1:-1]
-    qs = np.quantile(errors, ps, axis=0)
-
-    # if num_quantiles == 0:
-    #     alphas = np.full((1,), kwargs.get('alpha', 1))
-    # else:
-    #     alphas = np.empty(num_quantiles)
-    #     alphas[0] = 2*ps[0]
-    #     for i in range(1, num_quantiles):
-    #         alphas[i] = 2*(ps[i] - ps[i-1])/(1 - 2*ps[i-1])
+    qs = np.nanquantile(errors, ps, axis=0)
 
     base_line, = ax.plot(values, qs[num_quantiles], **kwargs)
     ls = [base_line]
@@ -51,12 +44,10 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
     color = np.array(mpl.colors.to_rgba(ax.get_facecolor())); color[3] = 1
     kwargs.pop('color', None)
     for e in range(num_quantiles):
-        # alpha = alphas[e]
         alpha = 1/num_quantiles
         color = alpha*line_color + (1-alpha)*color
         l = ax.fill_between(values, qs[e], qs[-1-e], color=tuple(color.tolist()), **kwargs)
         ls.append(l)
-    # return ls, alphas
     return ls
 
 
