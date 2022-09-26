@@ -12,13 +12,13 @@ def mix(*color_value_list, alpha=True):
     c1 = colorvec(color_value_list[0])
     if len(color_value_list) == 1:
         return c1
-    v = color_value_list[1]/100
+    v = color_value_list[1] / 100
     assert isinstance(v, float)
     if len(color_value_list) > 2:
         c2 = colorvec(color_value_list[2])
     else:
         c2 = 1
-    c3 = v*c1 + (1-v)*c2
+    c3 = v * c1 + (1 - v) * c2
     return mix(c3, *color_value_list[3:])
 
 
@@ -44,31 +44,30 @@ frametitle_fg = mix(bimosred, 75, normal_text_fg)
 class BIMoSStyle(object):
     def __init__(self):
         self.geometry = {
-            'top':    1,
-            'bottom': 0,
-            'left':   0,
-            'right':  1,
-            'wspace': 0.25,  # the default as defined in rcParams
-            'hspace': 0.25  # the default as defined in rcParams
+            "top": 1,
+            "bottom": 0,
+            "left": 0,
+            "right": 1,
+            "wspace": 0.25,  # the default as defined in rcParams
+            "hspace": 0.25,  # the default as defined in rcParams
         }
         self.fontSize = 10
 
     def set(self):
-        mpl.rc('font', size=self.fontSize, family='Times New Roman')
-        mpl.rc('text', usetex=True)
-        # mpl.rc('text.latex', preamble=r'\usepackage{amsmath}')
-        mpl.rc('text.latex', preamble=r'''
+        mpl.rc("font", size=self.fontSize, family="Times New Roman")
+        mpl.rc("text", usetex=True)
+        mpl.rc(
+            "text.latex",
+            preamble=r"""
             \usepackage{newtxmath}
             \usepackage{amsmath}
             \usepackage{bbm}
-        ''')
-        # 'font.family': 'sans-serif',
-        # 'mathtext.fontset': 'stixsans',
-        # 'text.latex.preamble': [r'\usepackage{FiraSans}', r'\usepackage{sfmath}', r'\usepackage{amsmath}', r'\usepackage{bbm}']}
-        mpl.rc('figure', facecolor=normal_text_bg, edgecolor=normal_text_bg)
-        mpl.rc('axes', facecolor=block_body_bg, edgecolor=normal_text_fg, labelcolor=normal_text_fg)
-        mpl.rc('xtick', color=normal_text_fg)
-        mpl.rc('ytick', color=normal_text_fg)
+        """,
+        )
+        mpl.rc("figure", facecolor=normal_text_bg, edgecolor=normal_text_bg)
+        mpl.rc("axes", facecolor=block_body_bg, edgecolor=normal_text_fg, labelcolor=normal_text_fg)
+        mpl.rc("xtick", color=normal_text_fg)
+        mpl.rc("ytick", color=normal_text_fg)
 
 
 def homotopy(x, y, num):
@@ -76,15 +75,17 @@ def homotopy(x, y, num):
     assert y.shape in {(3,), (4,)}
     x = x[None]
     y = y[None]
-    s = np.linspace(0,1,num)[:,None]
-    return (1-s)*x + s*y
+    s = np.linspace(0, 1, num)[:, None]
+    return (1 - s) * x + s * y
 
 
 def compute_figsize(geometry, shape, aspect_ratio=1, figwidth=3.98584):
-    subplotwidth = (geometry['right']-geometry['left'])*figwidth/(shape[1]+(shape[1]-1)*geometry['wspace'])  # make as wide as two plots
-    subplotheight = subplotwidth/aspect_ratio
-    figheight = subplotheight*(shape[0]+(shape[0]-1)*geometry['hspace'])
-    figheight = figheight/(geometry['top']-geometry['bottom'])
+    subplotwidth = (
+        (geometry["right"] - geometry["left"]) * figwidth / (shape[1] + (shape[1] - 1) * geometry["wspace"])
+    )  # make as wide as two plots
+    subplotheight = subplotwidth / aspect_ratio
+    figheight = subplotheight * (shape[0] + (shape[0] - 1) * geometry["hspace"])
+    figheight = figheight / (geometry["top"] - geometry["bottom"])
     return (figwidth, figheight)
 
 
@@ -93,38 +94,34 @@ try:
 
     def rgb2lab(cs):
         assert cs.ndim >= 1
-        assert cs.shape[-1] in {3,4}
+        assert cs.shape[-1] in {3, 4}
         has_alpha = cs.shape[-1] == 4
         if has_alpha:
             alpha = cs[..., -1][..., None]
         ndim = cs.ndim
-        cs = cs[(None,)*(3-ndim)][..., :3]
-        ret = _rgb2lab(cs)[(0,)*(3-ndim)]
+        cs = cs[(None,) * (3 - ndim)][..., :3]
+        ret = _rgb2lab(cs)[(0,) * (3 - ndim)]
         if has_alpha:
             ret = np.concatenate([ret, alpha], axis=-1)
         return ret
-
 
     def lab2rgb(cs):
         assert cs.ndim >= 1
-        assert cs.shape[-1] in {3,4}
+        assert cs.shape[-1] in {3, 4}
         has_alpha = cs.shape[-1] == 4
         if has_alpha:
             alpha = cs[..., -1][..., None]
         ndim = cs.ndim
-        cs = cs[(None,)*(3-ndim)][..., :3]
-        ret = _lab2rgb(cs)[(0,)*(3-ndim)]
+        cs = cs[(None,) * (3 - ndim)][..., :3]
+        ret = _lab2rgb(cs)[(0,) * (3 - ndim)]
         if has_alpha:
             ret = np.concatenate([ret, alpha], axis=-1)
         return ret
 
-
     assert np.allclose(lab2rgb(rgb2lab(mix(bimosred))) - mix(bimosred), 0)
-
 
     def lightness(cs):
         return rgb2lab(cs)[..., 0]
-
 
     def sequential_cmap(*seq, lightness_range=(5, 98), steps=1000, strict=False):
         seq = np.array(sorted([rgb2lab(mix(c, alpha=False)) for c in seq], key=lambda c: c[0]))
@@ -142,75 +139,34 @@ try:
             cm1[0] = lightness_range[1]
             seq = np.concatenate([seq, cm1[None]], axis=0)
 
-        ratios = np.diff((seq[:,0] - lightness_range[0])/(lightness_range[1] - lightness_range[0]))
+        ratios = np.diff((seq[:, 0] - lightness_range[0]) / (lightness_range[1] - lightness_range[0]))
         parts = []
-        for i in range(len(seq)-1):
-            parts.append(homotopy(seq[i], seq[i+1], num=int(steps*ratios[i])))
+        for i in range(len(seq) - 1):
+            parts.append(homotopy(seq[i], seq[i + 1], num=int(steps * ratios[i])))
         return lab2rgb(np.concatenate(parts))
-
 
     lightness_range = 5, 95
     bb = rgb2lab(mix(bimosblack, alpha=False))
     bb[0] = lightness_range[0]
     bb = lab2rgb(bb)
     br = rgb2lab(mix(bimosred, alpha=False))
-    br[0] = (lightness_range[0] + lightness_range[1])/2
+    br[0] = (lightness_range[0] + lightness_range[1]) / 2
     br = lab2rgb(br)
     by = rgb2lab(mix(bimosyellow, alpha=False))
     by[0] = lightness_range[1]
     by = lab2rgb(by)
 
     # cmap = sequential_cmap(bb, mix(bimosblack, 20, bimosred), mix(bimosred, 20, br), mix(br, 80, example_text_fg), bimosyellow, lightness_range=lightness_range, strict=True)
-    cmap = sequential_cmap(bb, mix(bimosblack, 30, bimosred, 80, br), mix(bimosred, 20, br, 80, example_text_fg), mix(br, 80, example_text_fg), bimosyellow, lightness_range=lightness_range, strict=True)
-    BIMoSmap = mpl.colors.LinearSegmentedColormap.from_list('BIMoS', cmap)
+    cmap = sequential_cmap(
+        bb,
+        mix(bimosblack, 30, bimosred, 80, br),
+        mix(bimosred, 20, br, 80, example_text_fg),
+        mix(br, 80, example_text_fg),
+        bimosyellow,
+        lightness_range=lightness_range,
+        strict=True,
+    )
+    BIMoSmap = mpl.colors.LinearSegmentedColormap.from_list("BIMoS", cmap)
 except:
     print("Could not load skimage...")
     pass
-
-
-# top = 1
-# bottom = 0
-# left = 0
-# right = 1
-# wspace = 0.25  # the default is defined rcParams
-# hspace = 0.25  # the default is defined rcParams
-
-# import matplotlib.pyplot as plt
-# fontsize = 10  #TODO: set im mpl
-# mpl.rcParams['text.usetex'] = True
-# mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
-# mpl.rcParams.update({'font.size': fontsize})
-# 
-# BG = "xkcd:white"
-
-# class PlotManager(object):
-#     def __init__(self, shape, aspect_ratio, linewidth):
-#         top = ...
-#         ...
-#     def __enter__(self):
-#         ...
-#     def __exit__(self, type, value, traceback):
-#         ...
-# 
-# def compute_figsize(shape, aspect_ratio=1, linewidth=3.98584):
-#     figwidth = linewidth
-#     subplotwidth = (right-left)*figwidth/(shape[1]+(shape[1]-1)*wspace)  # make as wide as two plots
-#     subplotheight = subplotwidth/aspect_ratio
-#     figheight = subplotheight*(shape[0]+(shape[0]-1)*hspace)
-#     figheight = figheight/(top-bottom)
-#     return (figwidth, figheight)
-# 
-# from contextlib import contextmanager
-# @contextmanager
-# def plot(path):
-#     figshape = (1,1)
-#     figsize = compute_figsize(figshape)
-#     f,ax = plt.subplots(*figshape, figsize=figsize, dpi=300)
-#     f.patch.set_facecolor(BG)
-#     ax.set_facecolor(BG)
-#     yield f,ax
-#     ax.set_xticks([], [])
-#     ax.set_yticks([], [])
-#     plt.subplots_adjust(top=top, bottom=bottom, left=left, right=right, wspace=wspace, hspace=hspace)
-#     plt.savefig(path, dpi=300, facecolor=f.get_facecolor(), edgecolor='none', bbox_inches="tight") # , transparent=True)
-#     plt.close()
