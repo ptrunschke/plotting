@@ -89,10 +89,10 @@ parser.add_argument(
     "-o", "--output", type=str, default="animation.gif", help="path of the output file"
 )
 parser.add_argument(
-    "-d", "--duration", type=float, default=100, help="duration for each frame in ms"
+    "-d", "--duration", type=float, default=100, help="duration for each frame in ms (default 100)"
 )
 parser.add_argument(
-    "-l", "--loop", type=int, default=0, help="number of times the GIF is looped"
+    "-l", "--loop", type=int, default=0, help="number of times the GIF is looped (default 0, loop forever)"
 )
 args = parser.parse_args()
 create_gif(
