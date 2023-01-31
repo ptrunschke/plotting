@@ -1,5 +1,9 @@
+import os
+from contextlib import contextmanager
+
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 def mix(*color_value_list, alpha=True):
@@ -87,6 +91,43 @@ def compute_figsize(geometry, shape, aspect_ratio=1, figwidth=3.98584):
     figheight = subplotheight * (shape[0] + (shape[0] - 1) * geometry["hspace"])
     figheight = figheight / (geometry["top"] - geometry["bottom"])
     return (figwidth, figheight)
+
+
+@contextmanager
+def save_figure(filename: str, *figshape):
+    BG = "xkcd:white"
+    geometry = BIMoSStyle().geometry
+
+    mpl.rc("font", size=10, family="Times New Roman")
+    mpl.rc("text", usetex=True)
+
+    figwidth = 6.52437486112  # width of the figure in inches
+    phi = (1 + np.sqrt(5)) / 2
+    aspect_ratio = phi
+    figsize = compute_figsize(geometry, figshape, aspect_ratio=aspect_ratio, figwidth=figwidth)
+
+    try:
+        fig, ax = plt.subplots(*figshape, figsize=figsize, dpi=300)
+        fig.patch.set_facecolor(BG)
+        if isinstance(ax, np.ndarray):
+            for axi in ax.ravel():
+                axi.set_facecolor(BG)
+        else:
+            ax.set_facecolor(BG)
+        yield fig, ax
+    finally:
+        plt.subplots_adjust(**geometry)
+        dirname = os.path.dirname(filename)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        plt.savefig(
+            filename,
+            format="png",
+            facecolor=fig.get_facecolor(),
+            edgecolor="none",
+            bbox_inches="tight",
+        )
+        plt.close(fig)
 
 
 try:
