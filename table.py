@@ -48,29 +48,27 @@ def heatmap(data, row_labels, col_labels, ax=None, cbar=True, cbar_kw={}, cbarla
     ax.set_yticklabels(row_labels)
 
     # Let the horizontal axes labeling appear on top.
-    ax.tick_params(top=True, bottom=False,
-                   labeltop=True, labelbottom=False)
+    ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
 
     # Rotate the tick labels, set their alignment and background color.
-    plt.setp(ax.get_xticklabels(), rotation=-30, ha="right",
-             rotation_mode="anchor", backgroundcolor=fig.get_facecolor())
+    plt.setp(
+        ax.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor", backgroundcolor=fig.get_facecolor()
+    )
     plt.setp(ax.get_yticklabels(), backgroundcolor=fig.get_facecolor())
 
     # Turn spines off and create white grid.
     for edge, spine in ax.spines.items():
         spine.set_visible(False)
 
-    ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
-    ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
-    ax.grid(which="minor", color=fig.get_facecolor(), linestyle='-', linewidth=3)
+    ax.set_xticks(np.arange(data.shape[1] + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(data.shape[0] + 1) - 0.5, minor=True)
+    ax.grid(which="minor", color=fig.get_facecolor(), linestyle="-", linewidth=3)
     ax.tick_params(which="minor", bottom=False, left=False)
 
     return im, cbar
 
 
-def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
-                     textcolors=["black", "white"],
-                     threshold=None, **textkw):
+def annotate_heatmap(im, data=None, valfmt="{x:.2f}", textcolors=["black", "white"], threshold=None, **textkw):
     """
     A function to annotate a heatmap.
 
@@ -103,12 +101,11 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     if threshold is not None:
         threshold = im.norm(threshold)
     else:
-        threshold = im.norm(data.max())/2.
+        threshold = im.norm(data.max()) / 2.0
 
     # Set default alignment to center, but allow it to be
     # overwritten by textkw.
-    kw = dict(horizontalalignment="center",
-              verticalalignment="center")
+    kw = dict(horizontalalignment="center", verticalalignment="center")
     kw.update(textkw)
 
     # Get the formatter in case a string is supplied
@@ -130,13 +127,14 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 def log_table(data, row_labels, col_labels, lvmin=None, lvmax=None, ax=None, cmap="YlGn"):
     def scientific_latex(x, places=2):
         assert places > 0
-        if np.isnan(x): return ""
-        s = "-"*(x < 0)        # sign
+        if np.isnan(x):
+            return ""
+        s = "-" * (x < 0)  # sign
         x = abs(x)
         m = f"{x:.{places}e}"  # mantissa
-        assert m[2+places:4+places] in ["e+", "e-"]
-        e = int(m[3+places:])  # exponent
-        m = m[:2+places]
+        assert m[2 + places : 4 + places] in ["e+", "e-"]
+        e = int(m[3 + places :])  # exponent
+        m = m[: 2 + places]
         return f"{s}{m}\cdot 10^{{{e}}}"
 
     @matplotlib.ticker.FuncFormatter
@@ -154,10 +152,19 @@ def log_table(data, row_labels, col_labels, lvmin=None, lvmax=None, ax=None, cma
     if lvmax is None:
         lvmax = np.log10(np.max(data))
 
-    im,_ = heatmap(data, row_labels, col_labels, ax=ax, cbar=False, cmap=cmap, norm=matplotlib.colors.LogNorm(vmin=10**lvmin, vmax=10**lvmax), aspect=1/4)
+    im, _ = heatmap(
+        data,
+        row_labels,
+        col_labels,
+        ax=ax,
+        cbar=False,
+        cmap=cmap,
+        norm=matplotlib.colors.LogNorm(vmin=10**lvmin, vmax=10**lvmax),
+        aspect=1 / 4,
+    )
     ax.get_yaxis().set_tick_params(pad=110, length=0)
-    ax.set_yticklabels(row_labels, ha='left', va='center')
+    ax.set_yticklabels(row_labels, ha="left", va="center")
     ax.get_xaxis().set_tick_params(length=0)
     plt.setp(ax.get_xticklabels(), rotation=0, ha="center", rotation_mode="anchor")
-    texts = annotate_heatmap(im, data, valfmt=formatter, threshold=10**((lvmin+lvmax)/2))
+    texts = annotate_heatmap(im, data, valfmt=formatter, threshold=10 ** ((lvmin + lvmax) / 2))
     return im, texts

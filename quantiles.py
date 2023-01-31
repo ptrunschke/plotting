@@ -35,23 +35,27 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
     if ax is None:
         ax = plt.gca()
 
-    ps = np.linspace(0,1,2*(num_quantiles+1)+1)[1:-1]
+    ps = np.linspace(0, 1, 2 * (num_quantiles + 1) + 1)[1:-1]
     qs = np.nanquantile(errors, ps, axis=0)
 
-    base_line, = ax.plot(values, qs[num_quantiles], **kwargs)
+    (base_line,) = ax.plot(values, qs[num_quantiles], **kwargs)
     ls = [base_line]
-    line_color = np.array(mpl.colors.to_rgba(base_line.get_color())); line_color[3] = 1
-    color = np.array(mpl.colors.to_rgba(ax.get_facecolor())); color[3] = 1
-    kwargs.pop('color', None)
+    line_color = np.array(mpl.colors.to_rgba(base_line.get_color()))
+    line_color[3] = 1
+    color = np.array(mpl.colors.to_rgba(ax.get_facecolor()))
+    color[3] = 1
+    kwargs.pop("color", None)
     for e in range(num_quantiles):
-        alpha = 1/num_quantiles
-        color = alpha*line_color + (1-alpha)*color
-        l = ax.fill_between(values, qs[e], qs[-1-e], color=tuple(color.tolist()), **kwargs)
+        alpha = 1 / num_quantiles
+        color = alpha * line_color + (1 - alpha) * color
+        l = ax.fill_between(values, qs[e], qs[-1 - e], color=tuple(color.tolist()), **kwargs)
         ls.append(l)
     return ls
 
 
-def plot_approximations(evaluate_function, evaluate_basis, reconstruct, ax, numTrials=10_000, title=None, cachePath=None):
+def plot_approximations(
+    evaluate_function, evaluate_basis, reconstruct, ax, numTrials=10_000, title=None, cachePath=None
+):
     C0 = coloring.mix(coloring.bimosred, 80)
     C1 = "xkcd:black"
 
@@ -59,8 +63,8 @@ def plot_approximations(evaluate_function, evaluate_basis, reconstruct, ax, numT
     es = []
     if cachePath is not None and os.path.isfile(cachePath):
         z = np.load(cachePath)
-        cs = list(z['cs'])
-        es = list(z['es'])
+        cs = list(z["cs"])
+        es = list(z["es"])
         assert len(cs) == len(es)
 
     with tqdm(total=numTrials, initial=len(cs), desc=f"Reconstruct '{title}'") as pbar:
@@ -75,8 +79,8 @@ def plot_approximations(evaluate_function, evaluate_basis, reconstruct, ax, numT
             except KeyboardInterrupt:
                 break
             # except: pass  # Errors in the optimizer... TODO: make more specific
-    assert len(cs) == len(es) or len(cs) == len(es)+1
-    cs = cs[:len(es)]
+    assert len(cs) == len(es) or len(cs) == len(es) + 1
+    cs = cs[: len(es)]
     cs, es = np.array(cs, dtype=float), np.array(es, dtype=float)
 
     if cachePath is not None:
@@ -91,14 +95,23 @@ def plot_approximations(evaluate_function, evaluate_basis, reconstruct, ax, numT
 
     numQuantiles = 500
     plot_quantiles(xs, yss, num_quantiles=numQuantiles, axes=ax, color=C1, linewidth=0)
-    ax.plot(xs, fxs, linestyle=(0,(0.25,1.5)), color=C0, linewidth=3, dash_capstyle='round')
-    ymin = np.min(fxs)-(np.max(fxs)-np.min(fxs))/4
-    ymax = np.max(fxs)+(np.max(fxs)-np.min(fxs))/4
-    ax.set_xlim(-1,1)
+    ax.plot(xs, fxs, linestyle=(0, (0.25, 1.5)), color=C0, linewidth=3, dash_capstyle="round")
+    ymin = np.min(fxs) - (np.max(fxs) - np.min(fxs)) / 4
+    ymax = np.max(fxs) + (np.max(fxs) - np.min(fxs)) / 4
+    ax.set_xlim(-1, 1)
     ax.set_ylim(ymin, ymax)
 
     if title is not None:
         # errors = np.max(abs(yss - fxs[None]), axis=1)
-        errors = np.sqrt(np.trapz((yss - fxs[None])**2, xs, axis=1))
+        errors = np.sqrt(np.trapz((yss - fxs[None]) ** 2, xs, axis=1))
         info = f"(avg.\ min.\ eigenvalue: {np.mean(es):.2e}, avg.\ error: {np.mean(errors):.2e})"
-        ax.set_title(r"{\fontsize{15pt}{18pt}\selectfont{}"+title+r"}"+"\n"+r"{\fontsize{10pt}{12pt}\selectfont{}"+info+"}", multialignment='center')
+        ax.set_title(
+            r"{\fontsize{15pt}{18pt}\selectfont{}"
+            + title
+            + r"}"
+            + "\n"
+            + r"{\fontsize{10pt}{12pt}\selectfont{}"
+            + info
+            + "}",
+            multialignment="center",
+        )
