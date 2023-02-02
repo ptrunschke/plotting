@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 
 def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
