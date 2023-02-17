@@ -98,6 +98,12 @@ def save_figure(filename: str, *figshape):
     BG = "xkcd:white"
     geometry = BIMoSStyle().geometry
 
+    assert len(figshape) <= 2
+    if len(figshape) == 0:
+        figshape = (1, 1)
+    elif len(figshape) == 1:
+        figshape = (1, figshape[0])
+
     mpl.rc("font", size=10, family="Times New Roman")
     mpl.rc("text", usetex=True)
 
