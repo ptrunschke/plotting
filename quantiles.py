@@ -38,17 +38,28 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
     ps = np.linspace(0, 1, 2 * (num_quantiles + 1) + 1)[1:-1]
     qs = np.nanquantile(errors, ps, axis=0)
 
-    (base_line,) = ax.plot(values, qs[num_quantiles], **kwargs)
+    zorder = max([child.zorder for child in ax.get_children()])
+    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder+1, **kwargs)
+    kwargs.pop("color", None)
+    alpha = kwargs.pop("alpha", 1)
+    kwargs.pop("lw", None)
+    kwargs.pop("linewidth", None)
+    kwargs.pop("label", None)
     ls = [base_line]
     line_color = np.array(mpl.colors.to_rgba(base_line.get_color()))
     line_color[3] = 1
-    color = np.array(mpl.colors.to_rgba(ax.get_facecolor()))
-    color[3] = 1
-    kwargs.pop("color", None)
+    color = line_color.copy()
+    color[3] = alpha / num_quantiles
     for e in range(num_quantiles):
-        alpha = 1 / num_quantiles
-        color = alpha * line_color + (1 - alpha) * color
-        l = ax.fill_between(values, qs[e], qs[-1 - e], color=tuple(color.tolist()), **kwargs)
+        l = ax.fill_between(
+            values,
+            qs[e],
+            qs[-1 - e],
+            color=tuple(color.tolist()),
+            lw=0,
+            zorder=zorder,
+            **kwargs
+        )
         ls.append(l)
     return ls
 
