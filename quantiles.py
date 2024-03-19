@@ -46,9 +46,7 @@ def plot_quantiles(nodes, values, ax=None, qrange=(0, 1), num_quantiles=4, **kwa
     kwargs.pop("linewidth", None)
     kwargs.pop("label", None)
     ls = [base_line]
-    line_color = np.array(mpl.colors.to_rgba(base_line.get_color()))
-    line_color[3] = 1
-    color = line_color.copy()
+    color = np.array(mpl.colors.to_rgba(base_line.get_color()))
     color[3] = alpha / num_quantiles
     for e in range(num_quantiles):
         l = ax.fill_between(
