@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
+def plot_quantiles(nodes, values, ax=None, qrange=(0, 1), num_quantiles=4, **kwargs):
     """
     Plot the quantiles for a stochastic process.
 
@@ -35,7 +35,7 @@ def plot_quantiles(nodes, values, ax=None, num_quantiles=4, **kwargs):
     if ax is None:
         ax = plt.gca()
 
-    ps = np.linspace(0, 1, 2 * (num_quantiles + 1) + 1)[1:-1]
+    ps = np.linspace(*qrange, num=2 * (num_quantiles + 1) + 1)[1:-1]
     qs = np.nanquantile(errors, ps, axis=0)
 
     zorder = max([child.zorder for child in ax.get_children()])
