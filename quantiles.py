@@ -1,12 +1,19 @@
-import os
+from typing import Any, Optional
 
 import numpy as np
+from jaxtyping import Float
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 
-def plot_quantiles(nodes, values, ax=None, qrange=(0, 1), num_quantiles=4, **kwargs):
+def plot_quantiles(
+    nodes: Float[np.ndarray, " x_locations"],
+    values: Float[np.ndarray, "trials x_locations"],
+    ax: Optional[plt.Axes] = None,
+    qrange: tuple[float, float] = (0, 1),
+    num_quantiles: int = 4,
+    **kwargs: Any,
+) -> list[mpl.lines.Line2D | mpl.collections.PolyCollection]:
     """
     Plot the quantiles for a stochastic process.
 
@@ -39,31 +46,37 @@ def plot_quantiles(nodes, values, ax=None, qrange=(0, 1), num_quantiles=4, **kwa
     qs = np.nanquantile(errors, ps, axis=0)
 
     zorder = max([child.zorder for child in ax.get_children()])
-    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder+1, **kwargs)
+    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder + 1, **kwargs)
     kwargs.pop("color", None)
     alpha = kwargs.pop("alpha", 1)
     kwargs.pop("lw", None)
     kwargs.pop("linewidth", None)
     kwargs.pop("label", None)
-    ls = [base_line]
+    all_lines = [base_line]
     color = np.array(mpl.colors.to_rgba(base_line.get_color()))
     color[3] = alpha / num_quantiles
     for e in range(num_quantiles):
-        l = ax.fill_between(
+        line = ax.fill_between(
             values,
             qs[e],
             qs[-1 - e],
             color=tuple(color.tolist()),
             lw=0,
             zorder=zorder,
-            **kwargs
+            **kwargs,
         )
-        ls.append(l)
-    return ls
+        all_lines.append(line)
+    return all_lines
 
 
 def plot_approximations(
-    evaluate_function, evaluate_basis, reconstruct, ax, numTrials=10_000, title=None, cachePath=None
+    evaluate_function,
+    evaluate_basis,
+    reconstruct,
+    ax,
+    numTrials=10_000,
+    title=None,
+    cachePath=None,
 ):
     C0 = coloring.mix(coloring.bimosred, 80)
     C1 = "xkcd:black"
@@ -104,7 +117,14 @@ def plot_approximations(
 
     numQuantiles = 500
     plot_quantiles(xs, yss, num_quantiles=numQuantiles, axes=ax, color=C1, linewidth=0)
-    ax.plot(xs, fxs, linestyle=(0, (0.25, 1.5)), color=C0, linewidth=3, dash_capstyle="round")
+    ax.plot(
+        xs,
+        fxs,
+        linestyle=(0, (0.25, 1.5)),
+        color=C0,
+        linewidth=3,
+        dash_capstyle="round",
+    )
     ymin = np.min(fxs) - (np.max(fxs) - np.min(fxs)) / 4
     ymax = np.max(fxs) + (np.max(fxs) - np.min(fxs)) / 4
     ax.set_xlim(-1, 1)
