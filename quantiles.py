@@ -54,7 +54,7 @@ def plot_quantiles(
     kwargs.pop("label", None)
     all_lines = [base_line]
     color = np.array(mpl.colors.to_rgba(base_line.get_color()))
-    color[3] = alpha / num_quantiles
+    color[3] = alpha / max(num_quantiles, 1)
     for e in range(num_quantiles):
         line = ax.fill_between(
             values,
