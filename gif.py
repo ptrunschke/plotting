@@ -42,7 +42,9 @@ def glob_to_regex(glob: str) -> str:
     return pattern
 
 
-def create_gif(pattern: str, gifPath: str = "animation.gif", duration: float = 100.0, loop: int = 0) -> None:
+def create_gif(
+    pattern: str, gifPath: str = "animation.gif", duration: float = 100.0, loop: int = 0
+) -> None:
     """Create a GIF from the images matching the prescibed pattern.
 
     Parameters
@@ -74,6 +76,8 @@ def create_gif(pattern: str, gifPath: str = "animation.gif", duration: float = 1
         save_all=True,
         duration=duration,
         loop=loop,
+        transparency=0,
+        disposal=2,
     )
 
 
@@ -83,10 +87,31 @@ if __name__ == "__main__":
     descr = """Turn a collection of images into a GIF."""
     parser = argparse.ArgumentParser(description=descr)
     parser.add_argument("PATTERN", type=str, help="glob pattern for the image files")
-    parser.add_argument("-o", "--output", type=str, default="animation.gif", help="path of the output file")
-    parser.add_argument("-d", "--duration", type=float, default=100, help="duration for each frame in ms (default 100)")
     parser.add_argument(
-        "-l", "--loop", type=int, default=0, help="number of times the GIF is looped (default 0, loop forever)"
+        "-o",
+        "--output",
+        type=str,
+        default="animation.gif",
+        help="path of the output file",
+    )
+    parser.add_argument(
+        "-d",
+        "--duration",
+        type=float,
+        default=100,
+        help="duration for each frame in ms (default 100)",
+    )
+    parser.add_argument(
+        "-l",
+        "--loop",
+        type=int,
+        default=0,
+        help="number of times the GIF is looped (default 0, loop forever)",
     )
     args = parser.parse_args()
-    create_gif(pattern=args.PATTERN, gifPath=args.output, duration=args.duration, loop=args.loop)
+    create_gif(
+        pattern=args.PATTERN,
+        gifPath=args.output,
+        duration=args.duration,
+        loop=args.loop,
+    )
