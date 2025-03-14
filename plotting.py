@@ -187,6 +187,7 @@ def save_figure(
         dirname = os.path.dirname(output_path)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
+        print(f"Saving figure to '{output_path}'")
         plt.savefig(
             output_path,
             format="png",
