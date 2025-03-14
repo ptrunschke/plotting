@@ -142,6 +142,15 @@ class BIMoSStyle(object):
         mpl.rc("ytick", color=normal_text_fg)
 
 
+def multiplier_formatter(x: float, pos: float) -> str:
+    if x < 1e3:
+        return f"{x:.0f}"
+    elif x < 1e6:
+        return f"{x / 1e3:.0f}K"
+    else:
+        return f"{x / 1e6:.0f}M"
+
+
 @contextmanager
 def save_figure(
     output_path: Path,
