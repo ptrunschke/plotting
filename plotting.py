@@ -68,6 +68,46 @@ class PlotStyle(t.Protocol):
         pass
 
 
+class LightMode(object):
+    def __init__(self) -> None:
+        self.geometry = {
+            "top": 1,
+            "bottom": 0,
+            "left": 0,
+            "right": 1,
+            "wspace": 0.25,  # the default as defined in rcParams
+            "hspace": 0.25,  # the default as defined in rcParams
+        }
+        self.fg = "#000000"
+        self.bg = "#FFFFFF"
+        self.font = {
+            "family": "serif",
+            "weight": "ultralight",
+            "size": 10,
+        }
+
+    def set(self) -> None:
+        mpl.rc("font", **self.font)
+        # mpl.rc("text", usetex=True)
+        # mpl.rc(
+        #     "text.latex",
+        #     preamble=r"""
+        #     \usepackage{amsmath}
+        #     \usepackage{bbm}
+        # """,
+        # )
+        mpl.rc("text", color=self.fg)
+        mpl.rc("figure", facecolor=self.bg, edgecolor=self.bg)
+        mpl.rc(
+            "axes",
+            facecolor=self.bg,
+            edgecolor=self.fg,
+            labelcolor=self.fg,
+        )
+        mpl.rc("xtick", color=self.fg)
+        mpl.rc("ytick", color=self.fg)
+
+
 class DarkMode(object):
     def __init__(self) -> None:
         self.geometry = {
