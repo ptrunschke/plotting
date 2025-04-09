@@ -182,6 +182,7 @@ class BIMoSStyle(object):
         mpl.rc("ytick", color=normal_text_fg)
 
 
+# TODO: Use matplotlib.ticker.EngFormatter ?
 def multiplier_formatter(x: float, pos: float) -> str:
     if x < 1e3:
         return f"{x:.0f}"
