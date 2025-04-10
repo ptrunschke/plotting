@@ -7,25 +7,35 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+Colour = (
+    str | tuple[float, float, float] | tuple[float, float, float, float] | np.ndarray
+)
 
-def mix(*color_value_list, alpha=True):
-    if alpha:
-        colorvec = lambda c: np.array(mpl.colors.to_rgba(c))
+
+def mix(*colour_values: int | float | Colour, alpha: bool = True) -> np.ndarray:
+    channels: t.Literal[3, 4] = 4 if alpha else 3
+
+    def colour_to_vec(colour: Colour, channels: t.Literal[3, 4]) -> np.ndarray:
+        if isinstance(colour, str):
+            colour = mpl.colors.to_rgba(colour)
+        colour = np.asarray(colour)
+        assert colour.ndim == 1 and colour.shape[0] >= channels
+        return colour[:channels]
+
+    assert len(colour_values) > 0
+    assert isinstance(colour_values[0], (str, tuple, np.ndarray))
+    first_colour = colour_to_vec(colour_values[0], channels)
+    if len(colour_values) == 1:
+        return first_colour
+    if len(colour_values) > 2:
+        assert isinstance(colour_values[2], (str, tuple, np.ndarray))
+        second_colour = colour_to_vec(colour_values[2], channels)
     else:
-        colorvec = lambda c: np.array(mpl.colors.to_rgba(c))[:3]
-        # colorvec = lambda c: np.array(mpl.colors.to_rgb(c))
-    assert len(color_value_list) > 0
-    c1 = colorvec(color_value_list[0])
-    if len(color_value_list) == 1:
-        return c1
-    v = color_value_list[1] / 100
-    assert isinstance(v, float)
-    if len(color_value_list) > 2:
-        c2 = colorvec(color_value_list[2])
-    else:
-        c2 = 1
-    c3 = v * c1 + (1 - v) * c2
-    return mix(c3, *color_value_list[3:])
+        second_colour = np.array(1)
+    assert isinstance(colour_values[1], (int, float))
+    mixing_ratio = colour_values[1] / 100
+    mixed_colour = mixing_ratio * first_colour + (1 - mixing_ratio) * second_colour
+    return mix(mixed_colour, *colour_values[3:])
 
 
 bimosblack = "#23373B"
