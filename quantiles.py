@@ -42,11 +42,18 @@ def plot_quantiles(
     if ax is None:
         ax = plt.gca()
 
-    ps = np.linspace(*qrange, num=2 * (num_quantiles + 1) + 1)[1:-1]
+    ps = np.linspace(*qrange, num=2 * num_quantiles + 1)
     qs = np.nanquantile(errors, ps, axis=0)
 
     zorder = max([child.zorder for child in ax.get_children()])
-    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder + 1, **kwargs)
+    zorder = kwargs.pop("zorder", zorder)
+    drawstyle = kwargs.pop("drawstyle", "default")
+    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder + 1, drawstyle=drawstyle, **kwargs)
+    if drawstyle.startswith("steps-"):
+        step = drawstyle[len("steps-"):]
+    else:
+        assert drawstyle == "default"
+        step = None
     kwargs.pop("color", None)
     alpha = kwargs.pop("alpha", 1)
     kwargs.pop("lw", None)
@@ -63,6 +70,7 @@ def plot_quantiles(
             color=tuple(color.tolist()),
             lw=0,
             zorder=zorder,
+            step=step,
             **kwargs,
         )
         all_lines.append(line)
