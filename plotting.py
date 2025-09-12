@@ -204,13 +204,16 @@ def multiplier_formatter(x: float, pos: float) -> str:
         return f"{x / 1e6:.0f}M"
 
 
+# TODO: Adapt typing: The return is always a 2d array of plt.Axes!
 @contextmanager
 def save_figure(
     output_path: Path,
-    *fig_shape: int,
-    fig_width: float = 6.52437486112,
     plot_style: PlotStyle,
-) -> t.Iterator[tuple[plt.Figure, plt.Axes]]:
+    *,
+    fig_shape: tuple[int, int] = (1, 1),
+    fig_width: float = 6.52437486112,
+    aspect_ratio: t.Optional[float] = None,
+) -> t.Iterator[tuple[plt.Figure, plt.Axes | np.ndarray]]:
     """
     Context manager to save a figure to a file.
 
@@ -221,16 +224,12 @@ def save_figure(
     figwidth : float, optional
         Width of the figure in inches, by default 6.52437486112
     """
+    assert len(fig_shape) == 2
+    if aspect_ratio is None:
+        phi = (1 + np.sqrt(5)) / 2
+        aspect_ratio = phi
+
     plot_style.set()
-
-    assert len(fig_shape) <= 2
-    if len(fig_shape) == 0:
-        fig_shape = (1, 1)
-    elif len(fig_shape) == 1:
-        fig_shape = (1, fig_shape[0])
-
-    phi = (1 + np.sqrt(5)) / 2
-    aspect_ratio = phi
     figsize = compute_figsize(
         plot_style.geometry, fig_shape, aspect_ratio=aspect_ratio, figwidth=fig_width
     )
@@ -238,11 +237,9 @@ def save_figure(
     try:
         fig, ax = plt.subplots(*fig_shape, figsize=figsize, dpi=300)
         fig.patch.set_facecolor(plot_style.bg)
-        if isinstance(ax, np.ndarray):
-            for axi in ax.ravel():
-                axi.set_facecolor(plot_style.bg)
-        else:
-            ax.set_facecolor(plot_style.bg)
+        ax = np.reshape(ax, fig_shape)
+        for axi in ax.ravel():
+            axi.set_facecolor(plot_style.bg)
         yield fig, ax
     finally:
         plt.subplots_adjust(**plot_style.geometry)
