@@ -1,17 +1,22 @@
 from typing import Any, Optional
 
 import numpy as np
+from scipy.stats import binom
 from jaxtyping import Float
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
+# TODO: Adapt to google style!
 def plot_quantiles(
     nodes: Float[np.ndarray, " x_locations"],
     values: Float[np.ndarray, "trials x_locations"],
     ax: Optional[plt.Axes] = None,
     qrange: tuple[float, float] = (0, 1),
     num_quantiles: int = 4,
+    confidence: Optional[float] = None,
+    *,
+    drawstyle: str = "default",
     **kwargs: Any,
 ) -> list[mpl.lines.Line2D | mpl.collections.PolyCollection]:
     """
@@ -29,32 +34,71 @@ def plot_quantiles(
         Nan's are considered to be missing values and are ignored.
     ax : matplotlib.axes.Axes, optional
         The axis object used for plotting. (default: matplotlib.pyplot.gca())
+    qrange : pair of floats
+        Range of quantiles to plot. (default: (0, 1))
     num_quantiles : int (>= 0), optional
         Number of quantiles to plot. (default: 4)
-    linewidth: float, optional
-        Linewidth of the bounding lines of each quantile.
+    confidence : float or None
+        If confidence is None, the quantiles of the data are plotted.
+        If confidence is a float in the interval (0,1), the quantiles of the
+        underlying function are estimated with the given confidence.
+        (Assumes data points are iid.)
+    drawstyle : str
+        See Axes.plot.
+
+    Other Parameters
+    ----------------
+    **kwargs : Any
+        All other keyword arguments are passed on to Axes.plot and Axes.fill_between.
     """
-    errors = values
-    values = nodes
-    assert values.ndim == 1
-    assert len(values) == errors.shape[1]
+    assert nodes.ndim == 1
+    assert len(nodes) == values.shape[1]
     assert num_quantiles >= 0
     if ax is None:
         ax = plt.gca()
+    assert len(qrange) == 2 and 0 <= qrange[0] < qrange[1] <= 1
 
-    ps = np.linspace(*qrange, num=2 * num_quantiles + 1)
-    qs = np.nanquantile(errors, ps, axis=0)
+    if confidence is None:
+        ps = np.linspace(*qrange, num=2 * num_quantiles + 1)
+        qs = np.nanquantile(values, ps, axis=0)
+    else:
+        assert 0 < confidence < 1
+        ps = np.linspace(*qrange, num=2 * (num_quantiles + 1) + 1)[1:-1]
+        ps_low = ps[: num_quantiles]
+        ps_high = ps[num_quantiles + 1:]
+        assert np.allclose(ps[num_quantiles], 0.5)
+        assert np.all(ps_low < 0.5)
+        assert np.allclose(1 - ps_high[::-1], ps_low)
+        sample_size = values.shape[0]
+        us = binom.ppf(confidence, sample_size, ps_high)
+        assert us.shape == ps_high.shape
+        assert binom.cdf(us, sample_size, ps_high).shape == ps_high.shape
+        assert np.all(binom.cdf(us, sample_size, ps_high) >= confidence)
+        assert np.all(us.astype(int) == us)
+        assert np.all(us >= np.ceil(ps_high * values.shape[0]))
+        us = us.astype(int)
+        ls = binom.ppf(1 - confidence, values.shape[0], ps_low) - 1
+        assert np.all(ls > 0)
+        assert ls.shape == ps_low.shape
+        assert binom.cdf(ls, sample_size, ps_low).shape == ps_low.shape
+        assert np.all(1 - binom.cdf(ls, sample_size, ps_low) >= confidence)
+        assert np.all(ls.astype(int) == ls)
+        assert np.all(ls <= np.floor(ps_low * values.shape[0]))
+        ls = ls.astype(int)
+        assert np.all(ls == sample_size - us[::-1] - 1)
+        values = np.sort(values, 0)
+        assert np.all(values[:-1] <= values[1:])
+        qs = np.concatenate([values[ls], np.median(values, axis=0)[None], values[us]], axis=0)
 
     zorder = max([child.zorder for child in ax.get_children()])
     zorder = kwargs.pop("zorder", zorder)
-    drawstyle = kwargs.pop("drawstyle", "default")
-    (base_line,) = ax.plot(values, qs[num_quantiles], zorder=zorder + 1, drawstyle=drawstyle, **kwargs)
+    color = kwargs.pop("color", None)
+    (base_line,) = ax.plot(nodes, qs[num_quantiles], zorder=zorder + 1, drawstyle=drawstyle, color=color, **kwargs)
     if drawstyle.startswith("steps-"):
         step = drawstyle[len("steps-"):]
     else:
         assert drawstyle == "default"
         step = None
-    kwargs.pop("color", None)
     alpha = kwargs.pop("alpha", 1)
     kwargs.pop("lw", None)
     kwargs.pop("linewidth", None)
@@ -64,7 +108,7 @@ def plot_quantiles(
     color[3] = alpha / max(num_quantiles, 1)
     for e in range(num_quantiles):
         line = ax.fill_between(
-            values,
+            nodes,
             qs[e],
             qs[-1 - e],
             color=tuple(color.tolist()),
