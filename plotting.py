@@ -14,16 +14,15 @@ Colour = (
 )
 
 
+def colour_to_vec(colour: Colour, channels: t.Literal[3, 4]) -> np.ndarray:
+    assert isinstance(colour, str) or np.ndim(colour) == 1
+    colour = np.asarray(mpl.colors.to_rgba(colour))
+    assert colour.shape[0] >= channels
+    return colour[:channels]
+
+
 def mix(*colour_values: int | float | Colour, alpha: bool = True) -> np.ndarray:
     channels: t.Literal[3, 4] = 4 if alpha else 3
-
-    def colour_to_vec(colour: Colour, channels: t.Literal[3, 4]) -> np.ndarray:
-        if isinstance(colour, str):
-            colour = mpl.colors.to_rgba(colour)
-        colour = np.asarray(colour)
-        assert colour.ndim == 1 and colour.shape[0] >= channels
-        return colour[:channels]
-
     assert len(colour_values) > 0
     assert isinstance(colour_values[0], (str, tuple, np.ndarray))
     first_colour = colour_to_vec(colour_values[0], channels)
