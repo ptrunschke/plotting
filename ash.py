@@ -7,8 +7,8 @@ from matplotlib.axes import Axes
 from scipy.ndimage import convolve1d
 from sklearn.cluster import KMeans
 
-from plotting.plotting import mix
-from plotting.quantiles import plot_quantiles
+from .plotting import mix
+from .quantiles import plot_quantiles
 
 
 def fd_bin_width(
