@@ -1,23 +1,24 @@
-from typing import Any, Optional
+import typing as t
 
 import numpy as np
 from scipy.stats import binom
-from jaxtyping import Float
+import jaxtyping as jt
 import matplotlib as mpl
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 
 
 # TODO: Adapt to google style!
 def plot_quantiles(
-    nodes: Float[np.ndarray, " x_locations"],
-    values: Float[np.ndarray, "trials x_locations"],
-    ax: Optional[plt.Axes] = None,
+    nodes: jt.Float[np.ndarray, " x_locations"],
+    values: jt.Float[np.ndarray, "trials x_locations"],
+    ax: t.Optional[Axes] = None,
     qrange: tuple[float, float] = (0, 1),
     num_quantiles: int = 4,
-    confidence: Optional[float] = None,
+    confidence: t.Optional[float] = None,
     *,
     drawstyle: str = "default",
-    **kwargs: Any,
+    **kwargs: t.Any,
 ) -> list[mpl.lines.Line2D | mpl.collections.PolyCollection]:
     """
     Plot the quantiles for a stochastic process.
@@ -48,7 +49,7 @@ def plot_quantiles(
 
     Other Parameters
     ----------------
-    **kwargs : Any
+    **kwargs : typing.Any
         All other keyword arguments are passed on to Axes.plot and Axes.fill_between.
     """
     assert nodes.ndim == 1
@@ -64,8 +65,8 @@ def plot_quantiles(
     else:
         assert 0 < confidence < 1
         ps = np.linspace(*qrange, num=2 * (num_quantiles + 1) + 1)[1:-1]
-        ps_low = ps[: num_quantiles]
-        ps_high = ps[num_quantiles + 1:]
+        ps_low = ps[:num_quantiles]
+        ps_high = ps[num_quantiles + 1 :]
         assert np.allclose(ps[num_quantiles], 0.5)
         assert np.all(ps_low < 0.5)
         assert np.allclose(1 - ps_high[::-1], ps_low)
@@ -88,14 +89,23 @@ def plot_quantiles(
         assert np.all(ls == sample_size - us[::-1] - 1)
         values = np.sort(values, 0)
         assert np.all(values[:-1] <= values[1:])
-        qs = np.concatenate([values[ls], np.median(values, axis=0)[None], values[us]], axis=0)
+        qs = np.concatenate(
+            [values[ls], np.median(values, axis=0)[None], values[us]], axis=0
+        )
 
     zorder = max([child.zorder for child in ax.get_children()])
     zorder = kwargs.pop("zorder", zorder)
     color = kwargs.pop("color", None)
-    (base_line,) = ax.plot(nodes, qs[num_quantiles], zorder=zorder + 1, drawstyle=drawstyle, color=color, **kwargs)
+    (base_line,) = ax.plot(
+        nodes,
+        qs[num_quantiles],
+        zorder=zorder + 1,
+        drawstyle=drawstyle,
+        color=color,
+        **kwargs,
+    )
     if drawstyle.startswith("steps-"):
-        step = drawstyle[len("steps-"):]
+        step = drawstyle[len("steps-") :]
     else:
         assert drawstyle == "default"
         step = None

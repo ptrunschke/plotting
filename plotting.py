@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import matplotlib as mpl
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -60,23 +62,18 @@ frametitle_fg = mix(bimosred, 75, normal_text_fg)
 
 class PlotStyle(t.Protocol):
     @property
-    def geometry(self) -> dict[str, float]:
-        pass
+    def geometry(self) -> dict[str, float]: ...
 
     @property
-    def fg(self) -> str:
-        pass
+    def fg(self) -> str: ...
 
     @property
-    def bg(self) -> str:
-        pass
+    def bg(self) -> str: ...
 
     @property
-    def font(self) -> dict[str, t.Any]:
-        pass
+    def font(self) -> dict[str, t.Any]: ...
 
-    def set(self) -> None:
-        pass
+    def set(self) -> None: ...
 
 
 class LightMode(object):
@@ -203,6 +200,10 @@ def multiplier_formatter(x: float, pos: float) -> str:
         return f"{x / 1e6:.0f}M"
 
 
+class AxesArray(t.Protocol):
+    def __getitem__(self, index: tuple[int, int]) -> Axes: ...
+
+
 # TODO: Adapt typing: The return is always a 2d array of plt.Axes!
 @contextmanager
 def save_figure(
@@ -212,7 +213,7 @@ def save_figure(
     fig_shape: tuple[int, int] = (1, 1),
     fig_width: float = 6.52437486112,
     aspect_ratio: t.Optional[float] = None,
-) -> t.Iterator[tuple[plt.Figure, plt.Axes | np.ndarray]]:
+) -> t.Iterator[tuple[Figure, AxesArray]]:
     """
     Context manager to save a figure to a file.
 
@@ -245,7 +246,7 @@ def save_figure(
         dirname = os.path.dirname(output_path)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
-        print(f"Saving figure to '{output_path}'")
+        print(f"Saving figure to '{output_path.relative_to(Path.cwd())}'")
         plt.savefig(
             output_path,
             format="png",
@@ -257,7 +258,7 @@ def save_figure(
         plt.close(fig)
 
 
-def homotopy(x, y, num):
+def homotopy(x: np.ndarray, y: np.ndarray, num: int) -> np.ndarray:
     assert x.shape in {(3,), (4,)}
     assert y.shape in {(3,), (4,)}
     x = x[None]
@@ -266,7 +267,12 @@ def homotopy(x, y, num):
     return (1 - s) * x + s * y
 
 
-def compute_figsize(geometry, shape, aspect_ratio=1, figwidth=3.98584):
+def compute_figsize(
+    geometry: dict[str, float],
+    shape: tuple[int, ...],
+    aspect_ratio: float = 1.0,
+    figwidth: float = 3.98584,
+) -> tuple[float, float]:
     subplotwidth = (
         (geometry["right"] - geometry["left"])
         * figwidth
