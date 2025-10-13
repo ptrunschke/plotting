@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import typing as t
 
 import jaxtyping as jt
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from scipy.ndimage import convolve1d
 from sklearn.cluster import KMeans

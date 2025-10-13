@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import matplotlib as mpl
 import numpy as np
 from skimage.color import rgb2lab as _rgb2lab, lab2rgb as _lab2rgb

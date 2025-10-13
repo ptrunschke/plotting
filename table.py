@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
