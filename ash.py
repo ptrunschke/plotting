@@ -52,7 +52,51 @@ def fd_bin_width(
     return 2.0 * iqr * sample.shape[axis] ** (-1.0 / 3.0)
 
 
-def ash_1d(
+def bin_mask_1d(
+    samples: jt.Float[np.ndarray, "*shape n_samples"],
+    domain: tuple[float, float],
+    *,
+    n_bins: t.Optional[int] = None,
+    n_shifts: t.Optional[int] = None,
+    extend: bool = True,
+) -> tuple[
+    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, "*shape n_samples n_bins*n_shifts+1"],
+    int,
+]:
+    """Compute averaged shifted histograms."""
+    assert len(domain) == 2
+    assert np.all(domain[0] <= samples) and np.all(samples <= domain[1])
+    *shape, n_samples = samples.shape
+    samples = samples.reshape(-1, n_samples)
+    domain_width = domain[1] - domain[0]
+    if n_bins is None:
+        bin_width = np.max(fd_bin_width(samples, axis=1))  # To have the same bins as ash_1d
+        n_bins = int(np.ceil(domain_width / bin_width))
+    assert n_bins >= 1
+    if n_shifts is None:
+        n_shifts = max(120 // n_bins + 1, 2)
+    assert n_shifts >= 2
+    if extend:
+        bin_width = (domain[1] - domain[0]) / (n_bins * n_shifts)
+        edges = np.linspace(
+            domain[0] - bin_width, domain[1] + bin_width, n_bins * n_shifts + 3
+        )
+    else:
+        edges = np.linspace(*domain, n_bins * n_shifts + 1)
+        assert np.allclose(edges[::n_shifts], np.linspace(*domain, n_bins + 1))
+    # frequencies, _ = np.histogram(samples, bins=edges)
+    samples = (samples - domain[0]) / domain_width  # scale domain to (0, 1)
+    assert np.all(0 <= samples) and np.all(samples <= 1)
+    samples = (samples * (n_bins * n_shifts)).astype(int)
+    samples = np.minimum(samples, n_bins * n_shifts - 1) + extend
+    bin_mask = np.zeros((samples.size, n_bins * n_shifts + 2 * extend))
+    bin_mask[np.arange(samples.size), samples.ravel()] = 1
+    bin_mask.shape = (*shape, n_samples, bin_mask.shape[1])
+    return edges, bin_mask, n_shifts
+
+
+def hist_1d(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
     *,
@@ -62,6 +106,7 @@ def ash_1d(
 ) -> tuple[
     jt.Float[np.ndarray, "n_bins*n_shifts"],
     jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
+    int,
 ]:
     """Compute averaged shifted histograms."""
     assert len(domain) == 2
@@ -87,19 +132,108 @@ def ash_1d(
     # frequencies, _ = np.histogram(samples, bins=edges)
     samples = (samples - domain[0]) / domain_width  # scale domain to (0, 1)
     samples = (samples * (n_bins * n_shifts)).astype(int)
-    samples = np.minimum(samples, n_bins * n_shifts - 1)
+    samples = np.minimum(samples, n_bins * n_shifts - 1) + extend
     frequencies = np.zeros((samples.shape[0], n_bins * n_shifts + 2 * extend))
     for bin in range(n_bins * n_shifts + 2 * extend):
         frequencies[:, bin] = np.count_nonzero(samples == bin, axis=-1)
+    return edges, frequencies.reshape(*shape, len(edges) - 1), n_shifts
+
+
+def average_hist_1d(
+    frequencies: jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
+    n_shifts: int
+) -> jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"]:
+    assert n_shifts > 0
+    *shape, n_bins = frequencies.shape
+    frequencies = frequencies.reshape(-1, n_bins)
     kernel = 1 - abs(np.arange(1 - n_shifts, n_shifts)) / n_shifts
     assert (
         np.all(kernel[::-1] == kernel) and np.all(0 <= kernel) and np.all(kernel <= 1)
     )
-    values = convolve1d(frequencies, kernel, axis=1, mode="constant")
-    values = np.maximum(values, 0)
-    assert np.all(np.isfinite(values))
-    values /= (values @ np.diff(edges))[:, None]
-    return edges, values.reshape(*shape, len(edges) - 1)
+    heights = convolve1d(frequencies, kernel, axis=1, mode="constant")
+    assert heights.shape == frequencies.shape
+    return heights.reshape(*shape, n_bins)
+
+
+def normalise_hist_1d(
+    edges: jt.Float[np.ndarray, "n_bins"],
+    heights: jt.Float[np.ndarray, "*shape n_bins+1"],
+) -> jt.Float[np.ndarray, "*shape n_bins+1"]:
+    assert heights.ndim >= 1 and heights.shape[-1] == len(edges) - 1
+    *shape, n_bins = heights.shape
+    heights = heights.reshape(-1, n_bins)
+    heights = np.maximum(heights, 0)
+    assert np.all(np.isfinite(heights))
+    heights /= (heights @ np.diff(edges))[:, None]
+    return heights.reshape(*shape, n_bins)
+
+
+def ash_1d(
+    samples: jt.Float[np.ndarray, "*shape n_samples"],
+    domain: tuple[float, float],
+    *,
+    n_bins: t.Optional[int] = None,
+    n_shifts: t.Optional[int] = None,
+    extend: bool = True,
+) -> tuple[
+    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
+]:
+    """Compute averaged shifted histograms."""
+    edges, frequencies, n_shifts = hist_1d(samples, domain, n_bins=n_bins, n_shifts=n_shifts, extend=extend)
+    frequencies = average_hist_1d(frequencies, n_shifts)
+    frequencies = normalise_hist_1d(edges, frequencies)
+    return edges, frequencies
+
+
+# def ash_1d(
+#     samples: jt.Float[np.ndarray, "*shape n_samples"],
+#     domain: tuple[float, float],
+#     *,
+#     n_bins: t.Optional[int] = None,
+#     n_shifts: t.Optional[int] = None,
+#     extend: bool = True,
+# ) -> tuple[
+#     jt.Float[np.ndarray, "n_bins*n_shifts"],
+#     jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
+# ]:
+#     """Compute averaged shifted histograms."""
+#     assert len(domain) == 2
+#     assert np.all(domain[0] <= samples) and np.all(samples <= domain[1])
+#     *shape, n_samples = samples.shape
+#     samples = samples.reshape(-1, n_samples)
+#     domain_width = domain[1] - domain[0]
+#     if n_bins is None:
+#         bin_width = np.max(fd_bin_width(samples, axis=1))
+#         n_bins = int(np.ceil(domain_width / bin_width))
+#     assert n_bins >= 1
+#     if n_shifts is None:
+#         n_shifts = max(120 // n_bins + 1, 2)
+#     assert n_shifts >= 2
+#     if extend:
+#         bin_width = (domain[1] - domain[0]) / (n_bins * n_shifts)
+#         edges = np.linspace(
+#             domain[0] - bin_width, domain[1] + bin_width, n_bins * n_shifts + 3
+#         )
+#     else:
+#         edges = np.linspace(*domain, n_bins * n_shifts + 1)
+#         assert np.allclose(edges[::n_shifts], np.linspace(*domain, n_bins + 1))
+#     # frequencies, _ = np.histogram(samples, bins=edges)
+#     samples = (samples - domain[0]) / domain_width  # scale domain to (0, 1)
+#     samples = (samples * (n_bins * n_shifts)).astype(int)
+#     samples = np.minimum(samples, n_bins * n_shifts - 1)
+#     frequencies = np.zeros((samples.shape[0], n_bins * n_shifts + 2 * extend))
+#     for bin in range(n_bins * n_shifts + 2 * extend):
+#         frequencies[:, bin] = np.count_nonzero(samples == bin, axis=-1)
+#     kernel = 1 - abs(np.arange(1 - n_shifts, n_shifts)) / n_shifts
+#     assert (
+#         np.all(kernel[::-1] == kernel) and np.all(0 <= kernel) and np.all(kernel <= 1)
+#     )
+#     values = convolve1d(frequencies, kernel, axis=1, mode="constant")
+#     values = np.maximum(values, 0)
+#     assert np.all(np.isfinite(values))
+#     values /= (values @ np.diff(edges))[:, None]
+#     return edges, values.reshape(*shape, len(edges) - 1)
 
 
 def midpoints(
