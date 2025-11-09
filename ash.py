@@ -96,6 +96,40 @@ def bin_mask_1d(
     return edges, bin_mask, n_shifts
 
 
+def edges_and_shifts(
+    samples: jt.Float[np.ndarray, "*shape n_samples"],
+    domain: tuple[float, float],
+    *,
+    n_bins: t.Optional[int] = None,
+    n_shifts: t.Optional[int] = None,
+    extend: bool = True,
+) -> tuple[
+    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    int,
+]:
+    assert len(domain) == 2
+    assert np.all(domain[0] <= samples) and np.all(samples <= domain[1])
+    *shape, n_samples = samples.shape
+    samples = samples.reshape(-1, n_samples)
+    domain_width = domain[1] - domain[0]
+    if n_bins is None:
+        bin_width = np.max(fd_bin_width(samples, axis=1))
+        n_bins = int(np.ceil(domain_width / bin_width))
+    assert n_bins >= 1
+    if n_shifts is None:
+        n_shifts = max(120 // n_bins + 1, 2)
+    assert n_shifts >= 2
+    if extend:
+        bin_width = (domain[1] - domain[0]) / (n_bins * n_shifts)
+        edges = np.linspace(
+            domain[0] - bin_width, domain[1] + bin_width, n_bins * n_shifts + 3
+        )
+    else:
+        edges = np.linspace(*domain, n_bins * n_shifts + 1)
+        assert np.allclose(edges[::n_shifts], np.linspace(*domain, n_bins + 1))
+    return edges, n_shifts
+
+
 def hist_1d(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
@@ -143,6 +177,7 @@ def average_hist_1d(
     frequencies: jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
     n_shifts: int
 ) -> jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"]:
+    # TODO: Add axes argument!
     assert n_shifts > 0
     *shape, n_bins = frequencies.shape
     frequencies = frequencies.reshape(-1, n_bins)
