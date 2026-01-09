@@ -1,3 +1,4 @@
+from __future__ import annotations
 # sources:
 #   - http://code.activestate.com/recipes/65287-automatically-start-the-debugger-on-an-exception/
 #   - http://stackoverflow.com/questions/242485/starting-python-debugger-automatically-on-error

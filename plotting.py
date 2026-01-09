@@ -94,16 +94,16 @@ class LightMode(object):
             "size": 10,
         }
 
-    def set(self) -> None:
+    def set(self, *, usetex: bool = False) -> None:
         mpl.rc("font", **self.font)
-        # mpl.rc("text", usetex=True)
-        # mpl.rc(
-        #     "text.latex",
-        #     preamble=r"""
-        #     \usepackage{amsmath}
-        #     \usepackage{bbm}
-        # """,
-        # )
+        mpl.rc("text", usetex=usetex)
+        if usetex:
+            mpl.rc(
+                "text.latex",
+                preamble=r"""
+                \usepackage{amsmath}
+            """,
+            )
         mpl.rc("text", color=self.fg)
         mpl.rc("figure", facecolor=self.bg, edgecolor=self.bg)
         mpl.rc(
@@ -134,16 +134,16 @@ class DarkMode(object):
             "size": 10,
         }
 
-    def set(self) -> None:
+    def set(self, *, usetex: bool = False) -> None:
         mpl.rc("font", **self.font)
-        # mpl.rc("text", usetex=True)
-        # mpl.rc(
-        #     "text.latex",
-        #     preamble=r"""
-        #     \usepackage{amsmath}
-        #     \usepackage{bbm}
-        # """,
-        # )
+        mpl.rc("text", usetex=usetex)
+        if usetex:
+            mpl.rc(
+                "text.latex",
+                preamble=r"""
+                \usepackage{amsmath}
+            """,
+            )
         mpl.rc("text", color=self.fg)
         mpl.rc("figure", facecolor=self.bg, edgecolor=self.bg)
         mpl.rc(
