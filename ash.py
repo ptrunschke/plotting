@@ -3,9 +3,9 @@ from __future__ import annotations
 import typing as t
 
 import jaxtyping as jt
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from scipy.ndimage import convolve1d
 from sklearn.cluster import KMeans
@@ -15,10 +15,10 @@ from .quantiles import plot_quantiles
 
 
 def fd_bin_width(
-    sample: jt.Float[np.ndarray, "..."], axis: t.Optional[int] = None
-) -> jt.Float[np.ndarray, "..."]:
+    sample: jt.Float[np.ndarray, " ..."], axis: int | None = None
+) -> jt.Float[np.ndarray, " ..."]:
     """
-    The Freedman-Diaconis histogram bin estimator.
+    Compute bin width according to Freedman-Diaconis histogram bin estimator.
 
     The Freedman-Diaconis rule uses interquartile range (IQR) to
     estimate binwidth. It is considered a variation of the Scott rule
@@ -33,9 +33,11 @@ def fd_bin_width(
 
     Parameters
     ----------
-    x : array_like
-        Input data that is to be histogrammed, trimmed to range. May not
-        be empty.
+    sample:
+        Input data that is to be histogrammed, trimmed to range. May not be empty.
+    axis:
+        Axis along which to compute the estimator. If `None`, compute estimator for the
+        flattend array. (default: None)
 
     Returns
     -------
@@ -43,7 +45,7 @@ def fd_bin_width(
 
     Notes
     -----
-    Copied from numpy.lib._histograms_impl._hist_bin_fd
+    Copied from numpy.lib._histograms_impl._hist_bin_fd (numpy version: 2.3.5).
     """
     if axis is None:
         sample = sample.ravel()
@@ -56,11 +58,11 @@ def bin_mask_1d(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
     *,
-    n_bins: t.Optional[int] = None,
-    n_shifts: t.Optional[int] = None,
+    n_bins: int | None = None,
+    n_shifts: int | None = None,
     extend: bool = True,
 ) -> tuple[
-    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, " n_bins*n_shifts"],
     jt.Float[np.ndarray, "*shape n_samples n_bins*n_shifts+1"],
     int,
 ]:
@@ -71,7 +73,9 @@ def bin_mask_1d(
     samples = samples.reshape(-1, n_samples)
     domain_width = domain[1] - domain[0]
     if n_bins is None:
-        bin_width = np.max(fd_bin_width(samples, axis=1))  # To have the same bins as ash_1d
+        bin_width = np.max(
+            fd_bin_width(samples, axis=1)
+        )  # To have the same bins as ash_1d
         n_bins = int(np.ceil(domain_width / bin_width))
     assert n_bins >= 1
     if n_shifts is None:
@@ -87,7 +91,7 @@ def bin_mask_1d(
         assert np.allclose(edges[::n_shifts], np.linspace(*domain, n_bins + 1))
     # frequencies, _ = np.histogram(samples, bins=edges)
     samples = (samples - domain[0]) / domain_width  # scale domain to (0, 1)
-    assert np.all(0 <= samples) and np.all(samples <= 1)
+    assert np.all(0 <= samples) and np.all(samples <= 1)  # noqa: SIM300
     samples = (samples * (n_bins * n_shifts)).astype(int)
     samples = np.minimum(samples, n_bins * n_shifts - 1) + extend
     bin_mask = np.zeros((samples.size, n_bins * n_shifts + 2 * extend))
@@ -110,11 +114,11 @@ def edges_and_shifts(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
     *,
-    n_bins: t.Optional[int] = None,
-    n_shifts: t.Optional[int] = None,
+    n_bins: int | None = None,
+    n_shifts: int | None = None,
     extend: bool = True,
 ) -> tuple[
-    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, " n_bins*n_shifts"],
     int,
 ]:
     assert len(domain) == 2
@@ -144,11 +148,11 @@ def hist_1d(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
     *,
-    n_bins: t.Optional[int] = None,
-    n_shifts: t.Optional[int] = None,
+    n_bins: int | None = None,
+    n_shifts: int | None = None,
     extend: bool = True,
 ) -> tuple[
-    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, " n_bins*n_shifts"],
     jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
     int,
 ]:
@@ -184,8 +188,7 @@ def hist_1d(
 
 
 def average_hist_1d(
-    frequencies: jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
-    n_shifts: int
+    frequencies: jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"], n_shifts: int
 ) -> jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"]:
     # TODO: Add axes argument!
     assert n_shifts > 0
@@ -193,7 +196,7 @@ def average_hist_1d(
     frequencies = frequencies.reshape(-1, n_bins)
     kernel = 1 - abs(np.arange(1 - n_shifts, n_shifts)) / n_shifts
     assert (
-        np.all(kernel[::-1] == kernel) and np.all(0 <= kernel) and np.all(kernel <= 1)
+        np.all(kernel[::-1] == kernel) and np.all(0 <= kernel) and np.all(kernel <= 1)  # noqa: SIM300
     )
     heights = convolve1d(frequencies, kernel, axis=1, mode="constant")
     assert heights.shape == frequencies.shape
@@ -201,7 +204,7 @@ def average_hist_1d(
 
 
 def normalise_hist_1d(
-    edges: jt.Float[np.ndarray, "n_bins"],
+    edges: jt.Float[np.ndarray, " n_bins"],
     heights: jt.Float[np.ndarray, "*shape n_bins+1"],
 ) -> jt.Float[np.ndarray, "*shape n_bins+1"]:
     assert heights.ndim >= 1 and heights.shape[-1] == len(edges) - 1
@@ -217,15 +220,17 @@ def ash_1d(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
     *,
-    n_bins: t.Optional[int] = None,
-    n_shifts: t.Optional[int] = None,
+    n_bins: int | None = None,
+    n_shifts: int | None = None,
     extend: bool = True,
 ) -> tuple[
-    jt.Float[np.ndarray, "n_bins*n_shifts"],
+    jt.Float[np.ndarray, " n_bins*n_shifts"],
     jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
 ]:
     """Compute averaged shifted histograms."""
-    edges, frequencies, n_shifts = hist_1d(samples, domain, n_bins=n_bins, n_shifts=n_shifts, extend=extend)
+    edges, frequencies, n_shifts = hist_1d(
+        samples, domain, n_bins=n_bins, n_shifts=n_shifts, extend=extend
+    )
     frequencies = average_hist_1d(frequencies, n_shifts)
     frequencies = normalise_hist_1d(edges, frequencies)
     return edges, frequencies
@@ -235,14 +240,21 @@ def ash_1d(
 #     samples: jt.Float[np.ndarray, "*shape n_samples"],
 #     domain: tuple[float, float],
 #     *,
-#     n_bins: t.Optional[int] = None,
-#     n_shifts: t.Optional[int] = None,
+#     n_bins: int | None = None,
+#     n_shifts: int | None = None,
 #     extend: bool = True,
 # ) -> tuple[
-#     jt.Float[np.ndarray, "n_bins*n_shifts"],
+#     jt.Float[np.ndarray, " n_bins*n_shifts"],
 #     jt.Float[np.ndarray, "*shape n_bins*n_shifts+1"],
 # ]:
-#     """Compute averaged shifted histograms."""
+#     """Compute averaged shifted histograms.
+
+#     Parameters
+#     ----------
+
+#     Returns
+#     -------
+#     """
 #     assert len(domain) == 2
 #     assert np.all(domain[0] <= samples) and np.all(samples <= domain[1])
 #     *shape, n_samples = samples.shape
@@ -273,7 +285,7 @@ def ash_1d(
 #     kernel = 1 - abs(np.arange(1 - n_shifts, n_shifts)) / n_shifts
 #     assert (
 #         np.all(kernel[::-1] == kernel) and np.all(0 <= kernel) and np.all(kernel <= 1)
-#     )
+#     )  # noqa: SIM300
 #     values = convolve1d(frequencies, kernel, axis=1, mode="constant")
 #     values = np.maximum(values, 0)
 #     assert np.all(np.isfinite(values))
@@ -282,13 +294,13 @@ def ash_1d(
 
 
 def midpoints(
-    edges: jt.Float[np.ndarray, "n_bins+1"],
-) -> jt.Float[np.ndarray, "n_bins"]:
+    edges: jt.Float[np.ndarray, " n_bins+1"],
+) -> jt.Float[np.ndarray, " n_bins"]:
     return (edges[1:] + edges[:-1]) / 2
 
 
 def hellinger_distance_matrix(
-    edges: jt.Float[np.ndarray, "n_bins+1"],
+    edges: jt.Float[np.ndarray, " n_bins+1"],
     densities: jt.Float[np.ndarray, "n_clusters n_bins"],
 ) -> jt.Float[np.ndarray, "n_clusters n_clusters"]:
     assert densities.ndim == 2
@@ -298,7 +310,7 @@ def hellinger_distance_matrix(
     distance_matrix = np.sqrt(0.5 * distance_matrix)
     assert distance_matrix.shape == (n_clusters, n_clusters)
     assert np.allclose(distance_matrix.T, distance_matrix)
-    assert np.all(0 <= distance_matrix) and np.all(distance_matrix <= 1 + 1e-8)
+    assert np.all(0 <= distance_matrix) and np.all(distance_matrix <= 1 + 1e-8)  # noqa: SIM300
     return distance_matrix
 
 
@@ -306,7 +318,7 @@ def density_clusters(
     edges: jt.Float[np.ndarray, " n_bins+1"],
     densities: jt.Float[np.ndarray, "n_densities n_bins+1"],
     *,
-    max_n_clusters: t.Optional[int] = None,
+    max_n_clusters: int | None = None,
     max_distance: float = 0.1,
     n_init: int = 10,
 ) -> list[jt.Float[np.ndarray, "cluster_size n_bins+1"]]:
@@ -343,11 +355,11 @@ def density_clusters(
 def plot_ash_quantiles(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
-    ax: t.Optional[Axes] = None,
+    ax: Axes | None = None,
     *,
     split_walks: bool = True,
-    n_bins: t.Optional[int] = None,
-    n_shifts: t.Optional[int] = None,
+    n_bins: int | None = None,
+    n_shifts: int | None = None,
     extend: bool = True,
     num_quantiles: int = 16,
     confidence: float = 0.99,
@@ -380,7 +392,7 @@ def plot_ash_quantiles(
 
     if ax is None:
         ax = plt.gca()
-    color = kwargs.pop("color", ax._get_patches_for_fill.get_next_color())
+    color = kwargs.pop("color", ax._get_patches_for_fill.get_next_color())  # type: ignore[attr-defined]
     fg = mpl.rcParams["axes.edgecolor"]
     bg = ax.get_facecolor()
     ax.plot(

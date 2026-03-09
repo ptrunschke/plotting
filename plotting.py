@@ -6,10 +6,10 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import matplotlib as mpl
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 Colour = (
     str | tuple[float, float, float] | tuple[float, float, float, float] | np.ndarray
@@ -94,16 +94,16 @@ class LightMode(object):
             "size": 10,
         }
 
-    def set(self) -> None:
+    def set(self, *, usetex: bool = False) -> None:
         mpl.rc("font", **self.font)
-        # mpl.rc("text", usetex=True)
-        # mpl.rc(
-        #     "text.latex",
-        #     preamble=r"""
-        #     \usepackage{amsmath}
-        #     \usepackage{bbm}
-        # """,
-        # )
+        mpl.rc("text", usetex=usetex)
+        if usetex:
+            mpl.rc(
+                "text.latex",
+                preamble=r"""
+                \usepackage{amsmath}
+            """,
+            )
         mpl.rc("text", color=self.fg)
         mpl.rc("figure", facecolor=self.bg, edgecolor=self.bg)
         mpl.rc(
@@ -134,16 +134,16 @@ class DarkMode(object):
             "size": 10,
         }
 
-    def set(self) -> None:
+    def set(self, *, usetex: bool = False) -> None:
         mpl.rc("font", **self.font)
-        # mpl.rc("text", usetex=True)
-        # mpl.rc(
-        #     "text.latex",
-        #     preamble=r"""
-        #     \usepackage{amsmath}
-        #     \usepackage{bbm}
-        # """,
-        # )
+        mpl.rc("text", usetex=usetex)
+        if usetex:
+            mpl.rc(
+                "text.latex",
+                preamble=r"""
+                \usepackage{amsmath}
+            """,
+            )
         mpl.rc("text", color=self.fg)
         mpl.rc("figure", facecolor=self.bg, edgecolor=self.bg)
         mpl.rc(
@@ -202,6 +202,43 @@ def multiplier_formatter(x: float, pos: float) -> str:
 
 class AxesArray(t.Protocol):
     def __getitem__(self, index: tuple[int, int]) -> Axes: ...
+
+
+@contextmanager
+def new_figure(
+    plot_style: PlotStyle,
+    *,
+    fig_shape: tuple[int, int] = (1, 1),
+    fig_width: float = 6.52437486112,
+    aspect_ratio: float | None = None,
+) -> t.Iterator[tuple[Figure, AxesArray]]:
+    """
+    Context manager to save a figure to a file.
+
+    Parameters
+    ----------
+    filename : str
+    plot_style : PlotStyle
+    figwidth : float, optional
+        Width of the figure in inches, by default 6.52437486112
+    """
+    assert len(fig_shape) == 2
+    if aspect_ratio is None:
+        phi = (1 + np.sqrt(5)) / 2
+        aspect_ratio = phi
+
+    plot_style.set()
+    figsize = compute_figsize(
+        plot_style.geometry, fig_shape, aspect_ratio=aspect_ratio, figwidth=fig_width
+    )
+
+    fig, ax = plt.subplots(*fig_shape, figsize=figsize, dpi=300)
+    fig.patch.set_facecolor(plot_style.bg)
+    ax = np.reshape(ax, fig_shape)
+    for axi in ax.ravel():
+        axi.set_facecolor(plot_style.bg)
+    yield fig, ax
+    plt.subplots_adjust(**plot_style.geometry)
 
 
 # TODO: Adapt typing: The return is always a 2d array of plt.Axes!

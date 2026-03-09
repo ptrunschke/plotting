@@ -125,19 +125,24 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}", textcolors=["black", "whit
     return texts
 
 
-def log_table(data, row_labels, col_labels, lvmin=None, lvmax=None, ax=None, cmap="YlGn"):
-    def scientific_latex(x, places=2):
-        assert places > 0
-        if np.isnan(x):
-            return ""
-        s = "-" * (x < 0)  # sign
-        x = abs(x)
-        m = f"{x:.{places}e}"  # mantissa
-        assert m[2 + places : 4 + places] in ["e+", "e-"]
-        e = int(m[3 + places :])  # exponent
-        m = m[: 2 + places]
-        return f"{s}{m}\cdot 10^{{{e}}}"
+def scientific_latex(number: float, places: int = 2, positive_sign: bool = False):
+    assert places >= 0
+    if np.isnan(number):
+        return "NaN"
+    if number == 0:
+        return "0"
+    if positive_sign:
+        number_str = f"{number:+.{places}e}"
+    else:
+        number_str = f"{number:.{places}e}"
+    e_position = number_str.find("e")
+    assert number_str[e_position : e_position + 2] in ["e+", "e-"]
+    mantissa = number_str[:e_position]
+    exponent = number_str[e_position + 1:]
+    return f"{mantissa}\cdot 10^{{{exponent}}}"
 
+
+def log_table(data, row_labels, col_labels, lvmin=None, lvmax=None, ax=None, cmap="YlGn"):
     @matplotlib.ticker.FuncFormatter
     def formatter(x, pos):
         return f"${scientific_latex(x)}$"
