@@ -96,6 +96,16 @@ def bin_mask_1d(
     return edges, bin_mask, n_shifts
 
 
+# TODO: Merge/compare with plotting.ash.bin_mask_1d()?!
+def inside_bin(sample: jt.Float[np.ndarray, "*sample_size"], edges: jt.Float[np.ndarray, "bin_count+1"]) -> jt.Bool[np.ndarray, "*sample_size bin_count"]:
+    assert edges.ndim == 1
+    # result = np.empty((*sample.shape, bin_count), dtype=bool)
+    # for k in range(bin_count):
+    #     result[..., k] = (edges[k] < sample) & (sample <= edges[k+1])
+    broadcast = (None,) * sample.ndim
+    return (edges[:-1][broadcast] < sample[..., None]) & (sample[..., None] <= edges[1:][broadcast])
+
+
 def edges_and_shifts(
     samples: jt.Float[np.ndarray, "*shape n_samples"],
     domain: tuple[float, float],
