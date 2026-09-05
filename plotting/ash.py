@@ -101,13 +101,18 @@ def bin_mask_1d(
 
 
 # TODO: Merge/compare with plotting.ash.bin_mask_1d()?!
-def inside_bin(sample: jt.Float[np.ndarray, "*sample_size"], edges: jt.Float[np.ndarray, "bin_count+1"]) -> jt.Bool[np.ndarray, "*sample_size bin_count"]:
+def inside_bin(
+    sample: jt.Float[np.ndarray, "*sample_size"],
+    edges: jt.Float[np.ndarray, "bin_count+1"],
+) -> jt.Bool[np.ndarray, "*sample_size bin_count"]:
     assert edges.ndim == 1
     # result = np.empty((*sample.shape, bin_count), dtype=bool)
     # for k in range(bin_count):
     #     result[..., k] = (edges[k] < sample) & (sample <= edges[k+1])
     broadcast = (None,) * sample.ndim
-    return (edges[:-1][broadcast] < sample[..., None]) & (sample[..., None] <= edges[1:][broadcast])
+    return (edges[:-1][broadcast] < sample[..., None]) & (
+        sample[..., None] <= edges[1:][broadcast]
+    )
 
 
 def edges_and_shifts(
@@ -353,23 +358,60 @@ def density_clusters(
 
 
 def plot_ash_quantiles(
-    samples: jt.Float[np.ndarray, "*shape n_samples"],
+    samples: jt.Float[np.ndarray, "trials n_samples"],
     domain: tuple[float, float],
     ax: Axes | None = None,
     *,
-    split_walks: bool = True,
     n_bins: int | None = None,
     n_shifts: int | None = None,
     extend: bool = True,
     num_quantiles: int = 16,
-    confidence: float = 0.99,
+    confidence: float | None = 0.99,
     **kwargs: t.Any,
 ) -> tuple[list[jt.Float[np.ndarray, "cluster_size n_bins"]], float]:
-    assert samples.ndim > 1
-    samples = samples.reshape(-1, samples.shape[-1])
-    if split_walks:
-        # samples = samples.reshape(samples.shape[0], 2, samples.shape[1] // 2)
-        samples = samples.reshape(2 * samples.shape[0], samples.shape[1] // 2)
+    """Plot the variation of the ASH density across realisations.
+
+    Each row of `samples` is interpreted as one realisation of the same
+    underlying density (e.g. an MCMC run with a slightly perturbed
+    log-likelihood). The averaged shifted histogram (ASH) density is computed
+    per row; the plot shows the quantile band, the median, and the min/max
+    envelopes across these densities, together with the means of clusters of
+    similar densities.
+
+    Parameters
+    ----------
+    samples:
+        Realisations of the density; one row per realisation.
+    domain:
+        Plot range; the histogram support.
+    ax:
+        Axes to plot on. (default: matplotlib.pyplot.gca())
+    n_bins, n_shifts, extend:
+        Passed to `ash_1d`.
+    num_quantiles, confidence:
+        Passed to `plot_quantiles`.
+    **kwargs:
+        Passed to `plot_quantiles` (e.g. `label`).
+
+    Returns
+    -------
+    clusters:
+        Groups of similar ASH densities.
+    min_cluster_distance:
+        Minimal Hellinger distance between cluster means.
+
+    Raises
+    ------
+    ValueError
+        If `samples` is not 2D, or if the number of realisations is
+        insufficient to estimate the extreme quantiles at the requested
+        confidence (see `plot_quantiles`).
+    """
+    if samples.ndim != 2:
+        raise ValueError(  # noqa: TRY003
+            "samples must be a 2D array (trials, n_samples) where each row is "
+            f"one realisation of the density, got shape {samples.shape}"
+        )
     edges, heights = ash_1d(
         samples,
         domain,
@@ -379,9 +421,6 @@ def plot_ash_quantiles(
     )
     assert heights.shape == (samples.shape[0], len(edges) - 1)
 
-    # TODO: Currently, the density_clusters squashes sampler and walker dimensions.
-    #       This is not problematic for the clustering, but we can not distinguish
-    #       clusters in the samplers from clusters in the walkers.
     clusters = density_clusters(edges, heights)
 
     cluster_means = np.array([np.mean(cluster, axis=0) for cluster in clusters])
@@ -424,6 +463,7 @@ def plot_ash_quantiles(
         num_quantiles=num_quantiles,
         confidence=confidence,
         zorder=0,
+        **kwargs,
     )
     for cluster in clusters:
         ax.plot(
